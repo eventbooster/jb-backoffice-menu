@@ -1,79 +1,132 @@
-angular
-.module( 'jb.backofficeMenu', [] )
+( function() {
 
-.controller( 'BackofficeMenuDirectiveController', [ '$scope', '$location', function( $scope, $location ) {
+	'use strict';
 
-	$scope.currentEntity = $location.path().split( '/' )[ 1 ];
+	angular
+	.module( 'jb.backofficeMenu', [ 'ui.router' ] )
 
-	var self			= this
-		, element;
+	.directive( 'backofficeMenu', [ '$location', function( $location ) {
 
-	self.init = function( el ) {
-		element = el;
-	};
+		return {
+			templateUrl			: 'backofficeMenuTemplate.html'
+			, controller		: 'BackofficeMenuDirectiveController'
+			, controllerAs		: 'backofficeMenu'
+			, bindToController	: true
+			, link				: function( scope, element, attrs, ctrl ) {
+				
+				ctrl.init( element );
 
-} ] )
+			}
+			, scope			: {
+				source		: '@'
+			}
+		};
 
-.directive( 'backofficeMenu', [ '$location', function( $location ) {
+	} ] )
 
-	function containsChild( item, name ) {
+	.controller( 'BackofficeMenuDirectiveController', [ '$http', '$q', '$state', function( $http, $q, $state ) {
 
-		if( item.children && item.children.length ) {
-			return item.children.some( function( child ) {
-				if( child.entity === name ) {
+		var _element
+			, _menuData = []
+			, self = this;
+
+		self.init = function( el ) {
+			_element = el;
+			self.fetchMenuData();
+		};
+
+
+		self.hasChildren = function( menuItem ) {
+			return menuItem && menuItem.children && menuItem.children.length ? true : false;
+		};
+
+
+		/**
+		* Returns true if menuItem is active.
+		*/
+		self.isOpen = function( menuItem ) {
+
+			if( $state.current.name !== 'app.list' && $state.current.name !== 'app.detail' ) {
+				return false;
+			}
+
+			var currentEntityName = $state.params.entityName;
+
+			if( menuItem.entity === currentEntityName ) {
+				return true;
+			}
+
+			var inChildren = false;
+			menuItem.children.some( function( child ) {
+				if( child.entity === currentEntityName ) {
+					inChildren = true;
 					return true;
 				}
 			} );
-		}
-		return false;
+			return inChildren;
 
-	}
+		};
 
-	return {
-		templateUrl		: 'backofficeMenuTemplate.html'
-		, controller	: 'BackofficeMenuDirectiveController'
-		, link			: function( scope, element, attrs, ctrl ) {
-			
-			ctrl.init( element );
 
-			scope.showSubmenu = function( item ) {
+		self.getMenuData = function() {
+			return _menuData;
+		};
 
-				// Current entity, without leading /
-				var currentEntity = $location.path().split( '/' )[ 1 ];
 
-				if( currentEntity === item.entity ) {
-					return true;
-				}
+		/**
+		* Fetches menu's data from config file (who's path is passed to component through source)
+		*/
+		self.fetchMenuData = function() {
 
-				if( containsChild( item, currentEntity ) ) {
-					return true;
-				}
+			console.log( 'BackofficeMenuDirectiveController: Get menu data from ' + self.source );
 
-				return false;
-			};
+			return $http.get( self.source )
+				.then( function( res ) {
 
-		}
-		, scope			: {
-			backofficeMenuSource	: '='
-		}
-	};
+					if( !res.status || res.status !== 200 ) {
+						return $q.reject( new Error( 'Backoffice Menu: Invalid state :' + res.status ) );
+					}
 
-} ] )
+					if( !angular.isArray( res.data ) ) {
+						return $q.reject( new Error( 'Backoffice Menu: Menu data gotten from file ' + self.source + ' is not an array.' ) );
+					}
 
-.run( function( $templateCache ) {
+					_menuData = res.data;
 
-	$templateCache.put( 'backofficeMenuTemplate.html',
-		'<ul class=\'menu\'>' +
-			'<li class=\'parent\' data-ng-repeat=\'item in backofficeMenuSource\'>' +
-				'<a data-ng-attr-href=\'#{{ item.entity }}\'>' +
-					'<span class=\'menu-icon\'><i class=\'fa\' data-ng-class=\'item.icon\'></i></span>' +
-					'<span class=\'menu-text\' data-translate=\'web.backoffice.menu.{{ item.entity }}\'></span>' +
-				'</a>' +
-				'<ul class=\'child\' data-ng-repeat=\'subItem in item.children\' data-ng-show=\'showSubmenu( item )\'>' +
-					'<li><a data-ng-attr-href=\'#{{ subItem.entity }}\' data-translate=\'web.backoffice.menu.{{ subItem.entity }}\'></a></li>' +
-				'</ul>' +
-			'</li>' +
-		'</ul>'
-	);
+					console.log( 'BackofficeMenuDirectiveController: Data successfully loaded from ' + self.source + ': %o', _menuData );
 
-} );
+					return _menuData;
+
+				} )
+				.catch( function ( err ) {
+					console.error( 'BackofficeMenuDirectiveController: Could not get menu data from ' + self.source + ': ' + JSON.stringify( err ) );
+				} );
+
+		};
+
+
+	} ] )
+
+	.run( function( $templateCache ) {
+
+		$templateCache.put( 'backofficeMenuTemplate.html',
+			'<ul class=\'menu\'>' +
+				'<li data-ng-class=\'{ parent: backofficeMenu.hasChildren( item ), active: backofficeMenu.isOpen( item ) }\' data-ng-repeat=\'item in backofficeMenu.getMenuData()\'>' +
+					'<a href=\'#\' data-ui-sref=\'app.list({ entityName: item.entity })\'>' +
+						'<span class=\'menu-icon\'><i class=\'fa\' data-ng-class=\'item.icon\'></i></span>' +
+						'<span class=\'menu-text\' data-translate=\'web.backoffice.menu.{{ item.entity }}\'></span>' +
+					'</a>' +
+					'<ul class=\'child\' data-ng-if=\'backofficeMenu.hasChildren( item )\'>' +
+						'<li data-ng-repeat=\'subItem in item.children\'>' +
+							'<a href=\'#\' data-ui-sref=\'app.list({ entityName: subItem.entity })\' data-translate=\'web.backoffice.menu.{{ subItem.entity }}\'></a>' +
+						'</li>' +
+					'</ul>' +
+				'</li>' +
+			'</ul>'
+		);
+
+	} );
+
+
+} )();
+
