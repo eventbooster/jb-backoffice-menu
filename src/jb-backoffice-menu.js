@@ -56,6 +56,12 @@
 				return true;
 			}
 
+			// No children
+			if( !menuItem.children || !menuItem.children.lenght ) {
+				return false;
+			}
+
+			// Test for children. Make sure we return before, if there ain't any children.
 			var inChildren = false;
 			menuItem.children.some( function( child ) {
 				if( child.entity === currentEntityName ) {
