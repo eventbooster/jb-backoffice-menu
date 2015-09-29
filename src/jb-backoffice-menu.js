@@ -57,7 +57,7 @@
 			}
 
 			// No children
-			if( !menuItem.children || !menuItem.children.lenght ) {
+			if( !menuItem.children || !menuItem.children.length ) {
 				return false;
 			}
 
