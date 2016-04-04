@@ -30,8 +30,6 @@
 			, _menuData = []
 			, self = this;
 
-			alert('0k');
-
 		self.init = function( el ) {
 			_element = el;
 			self.fetchMenuData();
