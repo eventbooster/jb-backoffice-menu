@@ -30,6 +30,8 @@
 			, _menuData = []
 			, self = this;
 
+			alert('0k');
+
 		self.init = function( el ) {
 			_element = el;
 			self.fetchMenuData();
@@ -53,6 +55,7 @@
 			var currentEntityName = $state.params.entityName;
 
 			if( menuItem.entity === currentEntityName ) {
+				console.log( 'BackofficeMenu: Item %o is open', menuItem );
 				return true;
 			}
 
@@ -122,7 +125,7 @@
 						'<span class=\'menu-icon\'><i class=\'fa\' data-ng-class=\'item.icon\'></i></span>' +
 						'<span class=\'menu-text\' data-translate=\'web.backoffice.menu.{{ item.entity }}\'></span>' +
 					'</a>' +
-					'<ul class=\'child\' data-ng-if=\'backofficeMenu.hasChildren( item )\'>' +
+					'<ul class=\'child\' data-ng-if=\'backofficeMenu.hasChildren( item ) && backofficeMenu.isOpen( item )\'>' +
 						'<li data-ng-repeat=\'subItem in item.children\'>' +
 							'<a href=\'#\' data-ui-sref=\'app.list({ entityName: subItem.entity })\' data-translate=\'web.backoffice.menu.{{ subItem.entity }}\'></a>' +
 						'</li>' +
