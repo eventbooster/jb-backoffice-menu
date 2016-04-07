@@ -53,7 +53,7 @@
 			var currentEntityName = $state.params.entityName;
 
 			if( menuItem.entity === currentEntityName ) {
-				console.log( 'BackofficeMenu: Item %o is open', menuItem );
+				//console.log( 'BackofficeMenu: Item %o is open', menuItem );
 				return true;
 			}
 
